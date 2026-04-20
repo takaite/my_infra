@@ -1,0 +1,21 @@
+all:
+  children:
+    dev_servers:
+      hosts:
+        # Configuração para rodar na própria máquina
+        localhost:
+          ansible_connection: local
+          # O Ansible detecta automaticamente o usuário logado se omitido, 
+          # mas podemos forçar a variável do sistema
+          ansible_user: "{{ lookup('env', 'USER') }}"
+          install_zsh: true
+
+        # Exemplo de servidor remoto para o projeto H4
+        servidor-yocto:
+          ansible_host: 192.168.87.252
+          ansible_user: sdv
+          install_zsh: false
+
+      vars:
+        # Caminho dinâmico para os dotfiles baseado no usuário atual
+        dotfiles_path: "/home/{{ ansible_user }}/my_dotfiles"

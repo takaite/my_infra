@@ -1,0 +1,96 @@
+---
+- name: "Setup Dev: Infra Agnostica e Modular"
+  hosts: dev_servers
+  become: yes
+  vars:
+    user_name: "{{ ansible_user }}"
+    dotfiles_path: "/home/{{ ansible_user }}/my_dotfiles"
+
+  tasks:
+    ## --- CATEGORIA: INFRA (Docker e Ferramentas Base) ---
+    - name: "Instalar Ferramentas de Sistema"
+      apt:
+        name: [git, tmux, mosh, stow, ripgrep, fd-find, build-essential, curl]
+        state: present
+        update_cache: yes
+      tags: [ 'infra', 'base' ]
+
+    - name: "Instalar Docker (Para Build Yocto)"
+      block:
+        - name: Adicionar chave GPG do Docker
+          apt_key:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            state: present
+        - name: Instalar Docker Engine
+          apt:
+            name: [docker-ce, docker-ce-cli, containerd.io]
+            state: present
+        - name: Adicionar usuario ao grupo docker
+          user:
+            name: "{{ user_name }}"
+            groups: docker
+            append: yes
+      tags: [ 'infra', 'docker' ]
+
+    ## --- CATEGORIA: SHELL (ZSH e Oh My Zsh) ---
+    - name: "Configuração do ZSH"
+      block:
+        - name: Instalar ZSH
+          apt:
+            name: zsh
+            state: present
+        - name: Instalar Oh My Zsh
+          shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+          become: no
+          args:
+            creates: "~/.oh-my-zsh"
+        - name: Alterar Shell padrao para ZSH
+          user:
+            name: "{{ user_name }}"
+            shell: /usr/bin/zsh
+      tags: [ 'shell', 'zsh' ]
+
+    ## --- CATEGORIA: EDITOR (Neovim) ---
+    - name: "Configuração do Neovim"
+      block:
+        - name: Adicionar PPA do Neovim
+          apt_repository:
+            repo: 'ppa:neovim-ppa/stable'
+            state: present
+        - name: Instalar Neovim
+          apt:
+            name: neovim
+            state: present
+        - name: Garantir pasta de config do Nvim
+          file:
+            path: "/home/{{ user_name }}/.config/nvim"
+            state: directory
+          become: no
+      tags: [ 'editor', 'nvim' ]
+
+    ## --- CATEGORIA: DOTFILES (Personalização via Stow) ---
+    - name: "Aplicação de Dotfiles Pessoais"
+      block:
+        - name: Verificar se a pasta my_dotfiles existe
+          stat:
+            path: "{{ dotfiles_path }}"
+          register: dot_repo
+          become: no
+        
+        - name: Listar modulos de dotfiles disponiveis
+          find:
+            paths: "{{ dotfiles_path }}"
+            file_type: directory
+          register: dot_modules
+          become: no
+          when: dot_repo.stat.exists
+
+        - name: Aplicar Stow dinamicamente
+          shell: "stow {{ item.path | basename }} --adopt"
+          args:
+            chdir: "{{ dotfiles_path }}"
+          loop: "{{ dot_modules.files }}"
+          become: no
+          when: dot_repo.stat.exists and dot_modules.matched > 0
+          ignore_errors: yes
+      tags: [ 'dotfiles', 'stow' ]
