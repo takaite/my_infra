@@ -152,3 +152,38 @@
           when: dot_repo.stat.exists and dot_modules.matched > 0
           ignore_errors: yes
       tags: [ 'dotfiles', 'stow' ]
+      
+    - name: "Instalação de Fontes (Nerd Fonts & Powerline)"
+      block:
+        - name: Criar diretório de fontes local para o usuário
+          file:
+            path: "/home/{{ ansible_user }}/.local/share/fonts"
+            state: directory
+            owner: "{{ ansible_user }}"
+            mode: '0755'
+
+        - name: Baixar MesloLGS NF (P10K Patched)
+          get_url:
+            url: "https://github.com/romkatv/powerlevel10k-media/raw/master/{{ item }}"
+            dest: "/home/{{ ansible_user }}/.local/share/fonts/{{ item }}"
+            owner: "{{ ansible_user }}"
+            mode: '0644'
+          loop:
+            - "MesloLGS NF Regular.ttf"
+            - "MesloLGS NF Bold.ttf"
+            - "MesloLGS NF Italic.ttf"
+            - "MesloLGS NF Bold Italic.ttf"
+
+        - name: Instalar fonte Ubuntu Mono Powerline
+          apt:
+            name: 
+              - fontconfig
+              - curl
+              - fonts-ubuntu-font-family-console
+            state: present
+            update_cache: yes
+            
+        - name: Atualizar cache de fontes do sistema
+          command: fc-cache -fv
+          changed_when: false
+      tags: [ 'fonts' ]
