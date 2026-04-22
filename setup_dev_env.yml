@@ -153,6 +153,7 @@
           ignore_errors: yes
       tags: [ 'dotfiles', 'stow' ]
       
+    ## --- CATEGORIA: Fonts (Instalar fontes para o ZSH) ---
     - name: "Instalação de Fontes (Nerd Fonts & Powerline)"
       block:
         - name: Criar diretório de fontes local para o usuário
@@ -162,24 +163,24 @@
             owner: "{{ ansible_user }}"
             mode: '0755'
 
-        - name: Baixar MesloLGS NF (P10K Patched)
+        - name: Baixar MesloLGS NF (Mapeamento explícito)
           get_url:
-            url: "https://github.com/romkatv/powerlevel10k-media/raw/master/{{ item }}"
-            dest: "/home/{{ ansible_user }}/.local/share/fonts/{{ item }}"
+            url: "https://github.com/romkatv/powerlevel10k-media/raw/master/{{ item.url_name }}"
+            dest: "/home/{{ ansible_user }}/.local/share/fonts/{{ item.file_name }}"
             owner: "{{ ansible_user }}"
             mode: '0644'
           loop:
-            - "MesloLGS NF Regular.ttf"
-            - "MesloLGS NF Bold.ttf"
-            - "MesloLGS NF Italic.ttf"
-            - "MesloLGS NF Bold Italic.ttf"
+            - { file_name: "MesloLGS NF Regular.ttf", url_name: "MesloLGS%20NF%20Regular.ttf" }
+            - { file_name: "MesloLGS NF Bold.ttf", url_name: "MesloLGS%20NF%20Bold.ttf" }
+            - { file_name: "MesloLGS NF Italic.ttf", url_name: "MesloLGS%20NF%20Italic.ttf" }
+            - { file_name: "MesloLGS NF Bold Italic.ttf", url_name: "MesloLGS%20NF%20Bold%20Italic.ttf" }
 
         - name: Instalar fonte Ubuntu Mono Powerline
           apt:
             name: 
               - fontconfig
               - curl
-              - fonts-ubuntu-font-family-console
+              - fonts-ubuntu
             state: present
             update_cache: yes
             

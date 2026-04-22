@@ -25,7 +25,7 @@ sudo apt install -y ansible
 
 ## 🚀 Como Usar
 ### 1. Configurar o Inventário
-Edite o arquivo `inventory.yml` para incluir os hosts desejados. Você pode configurar o `localhost` para rodar na própria máquina usando `ansible_connection: local`.
+Edite o arquivo `inventory.yml` para incluir os hosts desejados. Você pode configurar o `localhost` para rodar na própria máquina usando os parâmetros `--limit localhost --connection=local`.
 
 ### 2. Rodar o Playbook
 Utilize as **Tags** para controlar o que será instalado.
