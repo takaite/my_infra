@@ -76,56 +76,69 @@
             shell: /usr/bin/zsh
       tags: [ 'shell', 'zsh' ]
 
-    ## --- CATEGORIA: EDITOR (Neovim) ---
-    - name: "Instalação do Neovim via Extração de AppImage"
+    ## --- CATEGORIA: EDITOR (Neovim & Lazygit) ---
+    - name: "Instalação do Neovim, Lazygit e dependências"
       block:
-        - name: "Instalar utilitários para Neovim"
+        - name: "Instalar utilitários essenciais via APT (Deps para LazyVim)"
           apt:
             name:
-              - ripgrep
-              - fd-find
+              - ripgrep          # Busca (Telescope)
+              - fd-find          # Busca de arquivos (Telescope)
+              - build-essential  # Compilação de parsers (Treesitter)
+              - unzip            # Extração de LSPs (Mason)
+              - curl             # Download de complementos
+              - git              # Gestão de plugins (Lazy.nvim)
+              - xclip            # Clipboard integration
             state: present
-        
-        - name: Baixar o AppImage estável do Neovim
-          get_url:
-            url: https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
-            dest: /tmp/nvim.appimage
+            update_cache: yes
+
+        - name: "Garantir diretório temporário"
+          file:
+            path: /tmp/nvim-install
+            state: directory
             mode: '0755'
 
-        - name: Extrair o conteúdo do AppImage
-          shell: "./nvim.appimage --appimage-extract"
-          args:
-            chdir: /tmp
-            creates: /tmp/squashfs-root  # Evita extrair toda vez
-
-        - name: Mover conteúdo extraído para local definitivo
-          copy:
-            src: /tmp/squashfs-root/usr/
-            dest: /usr/local/
+        - name: "Instalar Neovim v0.11.7 (tar.gz)"
+          unarchive:
+            src: https://github.com/neovim/neovim/releases/download/v0.11.7/nvim-linux-x86_64.tar.gz
+            dest: /tmp/nvim-install
             remote_src: yes
-            mode: preserve
+            extra_opts: [--strip-components=1]
+            creates: /tmp/nvim-install/bin/nvim
 
-        - name: Garantir que o link simbólico aponta para o binário extraído
+        - name: "Mover Neovim para /usr/local/"
+          command: "cp -a /tmp/nvim-install/. /usr/local/"
+          # Usamos o '.' no final da origem para copiar o conteúdo, não a pasta em si
+        
+        - name: "Criar link simbólico para o Neovim"
           file:
             src: /usr/local/bin/nvim
             dest: /usr/bin/nvim
             state: link
             force: yes
 
-        - name: Verificar versão instalada
-          command: nvim --version
-          register: nvim_version
-          changed_when: false
+        - name: "Instalar Lazygit (Binário)"
+          block:
+            - name: "Baixar e extrair Lazygit"
+              unarchive:
+                src: "https://github.com/jesseduffield/lazygit/releases/download/v0.61.1/lazygit_0.61.1_linux_32-bit.tar.gz"
+                dest: /usr/local/bin
+                remote_src: yes
+                include: ["lazygit"]
 
-        - name: Limpar arquivos temporários
-          file:
-            path: "{{ item }}"
-            state: absent
+            - name: "Permissões de execução no Lazygit"
+              file:
+                path: /usr/local/bin/lazygit
+                mode: '0755'
+
+        - name: "Limpeza de arquivos temporários"
+          shell: "rm -rf {{ item }}"
           loop:
-            - /tmp/nvim.appimage
-            - /tmp/squashfs-root
-      tags: [ 'nvim' ]
-      
+            - /tmp/nvim-install
+            - /tmp/lazygit.tar.gz
+
+      tags: [ 'nvim', 'editor' ]
+
     ## --- CATEGORIA: DOTFILES (Personalização via Stow) ---
     - name: "Aplicação de Dotfiles Pessoais"
       block:
